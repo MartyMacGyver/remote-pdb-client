@@ -2,5 +2,20 @@
 
 ## A client for debugging code instrumented with the RemotePDB package
 
-Local install test:
-`rm -rf build dist RemotePDB_Client.egg-info && python3 setup.py bdist_wheel && pip3 install --upgrade dist/RemotePDB_Client-0.1.0-py3-none-any.whl`
+The RemotePDB package is a useful way to remotely debug code (i.e., code running in Docker). Normally, a user can simply wait for the `set_trace()` command to be executed, then telnet to the appropriate port. However, in applications such as Django, this necessitates manually disconnecting the telnet session before another breakpoint can be processed.
+
+With RemotePDB Client, the user can instantiate the client at any time, and it will pend until a debug connection becomes available. Likewise, after a PDB `c(ontinue)` command the client will disconnect internally and await the next available connection.
+
+You can use `h(elp)` within the debugger to see the usual remote commands. `q(uit)`/`e(xit)` will forward the given command and then exit the Client completely.
+
+A command history is available during a given session - it is NOT currently saved for re-use between client sessions.
+
+The `cl(ear)` breakpoints command is disallowed if it has no arguments (clearing all breakpoints causes the remote process to pend on y/n input).
+
+If you are debugging code in a Docker container, remember to expose the internal port externally via your `docker-compose` command or file (keeping in mind that the internal and external port numbers should be different).
+
+There is a limit to what you can debug with this - if you call `set_trace()` within code running in multiple threads/processes at the same time, only one will be connected to and the rest will pend or fail.
+
+## Disclaimer
+
+DO NOT use the Client to connect to untrusted hosts!

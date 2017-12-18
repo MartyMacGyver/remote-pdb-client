@@ -24,7 +24,7 @@
 
 PACKAGE_DATA = {
     'name': 'RemotePDB_Client',
-    'version': '0.1.1',
+    'version': '0.1.2',
     'url': 'https://github.com/MartyMacGyver/remote-pdb-client',
     'author': 'Martin F. Falatic',
     'author_email': 'martin@falatic.com',
@@ -60,7 +60,7 @@ For Windows, OS X and Linux
     },
     'install_requires': [
         'colorama>=0.3.9',
-        'cmd2>=0.7.8',
+        'prompt-toolkit>=1.0.15'
     ],
     'extras_require': {},
     'package_data': {},

@@ -29,6 +29,8 @@ import argparse
 import signal
 import sys
 from colorama import Fore, Back, Style
+from prompt_toolkit.history import InMemoryHistory
+from prompt_toolkit import prompt
 try:
     from remotepdb_client.__config__ import PACKAGE_DATA
 except ModuleNotFoundError:
@@ -38,11 +40,20 @@ except ModuleNotFoundError:
 TITLE = "{} v{}".format(PACKAGE_DATA['name'], PACKAGE_DATA['version'])
 
 
+def exit_handler():
+    print()
+    print(Fore.RESET + "Exiting...")
+    sys.exit(0)
+
+
 def signal_handler(signal, frame):
+    print()
+    exit_handler()
+
+
+def pad_line(padding=0):
+    for _ in range(padding):
         print()
-        print()
-        print(Fore.RESET + "Exiting...")
-        sys.exit(0)
 
 
 def setup(params):
@@ -54,24 +65,56 @@ def setup(params):
     minimum_delay = 0.1
     default_theme = 'none'
     default_prompt = '(Pdb) '  # trailing spaces are important
+    default_pad_before = 0
+    default_pad_after = 1
 
-    parser = argparse.ArgumentParser(description='Intelligent Client for RemotePDB')
-    parser.add_argument('--host', type=str, required=False,
+    def port_value(string):
+        value = int(string)
+        if not (0 <= value <= 65535):
+            msg = "Port {} is invalid".format(string)
+            raise argparse.ArgumentTypeError(msg)
+        return value
+
+    def delay_value(string):
+        value = float(string)
+        if value and value < minimum_delay:
+            msg = "{} is less than minimum delay {}".format(string, minimum_delay)
+            raise argparse.ArgumentTypeError(msg)
+        return value
+
+    parser = argparse.ArgumentParser(
+        description=PACKAGE_DATA['description'],
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument('--host', metavar='HOST_NAME', required=False,
+                        type=str, default=default_host,
                         help='hostname to connect to')
-    parser.add_argument('--port', type=int, required=False,
+    parser.add_argument('--port', metavar='PORT', required=False,
+                        type=port_value, default=default_port,
                         help='port to connect to')
-    parser.add_argument('--delay', type=float, required=False,
+    parser.add_argument('--delay', metavar='DELAY_SECS', required=False,
+                        type=delay_value, default=default_delay,
                         help='connection retry delay')
-    parser.add_argument('--theme', type=str, required=False,
+    parser.add_argument('--theme', metavar='THEME_NAME', required=False,
+                        type=str, default=default_theme,
                         help='output theme (dark, light, none)')
-    parser.add_argument('--prompt', type=str, required=False,
-                        help='debug prompt to wait for (including trailing spaces)')
+    parser.add_argument('--padbefore', required=False,
+                        type=int, metavar='LINES', default=default_pad_before,
+                        help='pad before remote lines')
+    parser.add_argument('--padafter', metavar='LINES', required=False,
+                        type=int, default=default_pad_after,
+                        help='pad after remote lines')
+    parser.add_argument('--prompt', metavar='STRING', required=False,
+                        type=str, default=default_prompt,
+                        help='remote prompt incl. trailing spaces')
     args = parser.parse_args()
 
     params['host'] = args.host if args.host else default_host
-    params['port'] = args.port if args.port else default_port
-    params['delay'] = args.delay if (args.delay and args.delay >= minimum_delay) else default_delay
+    params['port'] = args.port
+    params['delay'] = args.delay
     params['prompt'] = args.prompt if args.prompt else default_prompt
+    params['pad_before'] = args.padbefore
+    params['pad_after'] = args.padafter
 
     theme = {
         'none': {
@@ -102,6 +145,8 @@ def setup(params):
     params['theme'] = args.theme.lower() if args.theme else default_theme
     params.update(theme[params['theme']])
 
+    params['history'] = InMemoryHistory()
+
     return params
 
 
@@ -113,22 +158,25 @@ def connector(params):
         if read_remote:
             textin = remote.read_until(params['prompt'].encode('ascii'))
             text_main = textin.decode('ascii').rsplit(params['prompt'], 1)
-            print()
-            print(params['color_output'] + text_main[0] + params['color_prompt'] + params['prompt'].strip() + params['color_cmd'] + ' ', end='')
-        textout = input().strip()
+            pad_line(params['pad_before'])
+            print(params['color_output'] + text_main[0], end='')
+            pad_line(params['pad_after'])
+            print(params['color_prompt'] + params['prompt'].strip() + params['color_cmd'] + ' ', end='')
+        try:
+            textout = prompt(history=params['history']).strip()
+        except KeyboardInterrupt:
+            exit_handler()
         if textout in ['cl', 'clear']:
-            print(params['color_alert'] + "{} is not allowed here (blocks on stdin on the server)".format(textout))
-            print()
+            pad_line(params['pad_before'])
+            print(params['color_alert'] + "{} is not allowed here (would block on stdin on the server)".format(textout))
+            pad_line(params['pad_after'])
             print(params['color_prompt'] + params['prompt'].strip() + params['color_cmd'] + ' ', end='', flush=True)
             read_remote = False
         else:
-            # TODO history MFF uparrows cmd2?
             remote.write(textout.encode('ascii') + b'\n')
             read_remote = True
         if textout in ['e', 'exit', 'q', 'quit']:
-            print()
-            print(Fore.RESET + "Exiting...")
-            sys.exit(0)
+            exit_handler()
 
 
 def main(params={}):
@@ -142,8 +190,9 @@ def main(params={}):
             waiting = False
         except (ConnectionRefusedError, EOFError):
             if not waiting:
-                print()
+                pad_line(params['pad_before'])
                 print(params['color_wait'] + "Waiting for breakpoint/trace...")
+                pad_line(params['pad_after'])
                 waiting = True
             time.sleep(params['delay'])
 
