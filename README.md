@@ -8,7 +8,7 @@ With RemotePDB Client, the user can instantiate the client at any time, and it w
 
 You can use `h(elp)` within the debugger to see the usual remote commands. `q(uit)`/`e(xit)` will forward the given command and then exit the Client completely.
 
-A command history is available during a given session - it is NOT currently saved for re-use between client sessions.
+A persistent history is available and is saved for re-use between client sessions.
 
 The `cl(ear)` breakpoints command is disallowed if it has no arguments (clearing all breakpoints causes the remote process to pend on y/n input).
 

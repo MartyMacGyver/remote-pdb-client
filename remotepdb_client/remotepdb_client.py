@@ -28,8 +28,10 @@ import time
 import argparse
 import signal
 import sys
+from os.path import expanduser
 from colorama import Fore, Back, Style
-from prompt_toolkit.history import InMemoryHistory
+# from prompt_toolkit.history import InMemoryHistory
+from prompt_toolkit.history import FileHistory
 from prompt_toolkit import prompt
 try:
     from remotepdb_client.__config__ import PACKAGE_DATA
@@ -83,7 +85,7 @@ def setup(params):
         return value
 
     parser = argparse.ArgumentParser(
-        description=PACKAGE_DATA['description'],
+        description="{} - {}".format(TITLE, PACKAGE_DATA['description']),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('--host', metavar='HOST_NAME', required=False,
@@ -145,7 +147,8 @@ def setup(params):
     params['theme'] = args.theme.lower() if args.theme else default_theme
     params.update(theme[params['theme']])
 
-    params['history'] = InMemoryHistory()
+    # params['history'] = InMemoryHistory()
+    params['history'] = FileHistory(expanduser("~/.remotepdb_history"))
 
     return params
 
