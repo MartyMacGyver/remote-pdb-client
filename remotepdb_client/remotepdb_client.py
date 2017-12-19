@@ -39,7 +39,7 @@ except ModuleNotFoundError:
     from __config__ import PACKAGE_DATA
 
 
-TITLE = "{} v{}".format(PACKAGE_DATA['name'], PACKAGE_DATA['version'])
+TITLE = "{} v{}".format(PACKAGE_DATA['friendly_name'], PACKAGE_DATA['version'])
 
 
 def exit_handler():

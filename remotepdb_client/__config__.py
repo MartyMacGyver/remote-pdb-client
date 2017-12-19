@@ -23,8 +23,9 @@
 """
 
 PACKAGE_DATA = {
-    'name': 'RemotePDB_Client',
-    'version': '0.1.3',
+    'friendly_name': 'RemotePdb Client',
+    'name': 'remote-pdb-client',
+    'version': '0.9.0',
     'url': 'https://github.com/MartyMacGyver/remote-pdb-client',
     'author': 'Martin F. Falatic',
     'author_email': 'martin@falatic.com',
