@@ -41,10 +41,12 @@ except ModuleNotFoundError:
 
 TITLE = "{} v{}".format(PACKAGE_DATA['friendly_name'], PACKAGE_DATA['version'])
 
+RESET_COLOR = ''
+
 
 def exit_handler():
     print()
-    print(Fore.RESET + "Exiting...")
+    print(RESET_COLOR + "Exiting...")
     sys.exit(0)
 
 
@@ -146,6 +148,8 @@ def setup(params):
     }
     params['theme'] = args.theme.lower() if args.theme else default_theme
     params.update(theme[params['theme']])
+    global RESET_COLOR
+    RESET_COLOR = params['color_default']
 
     # params['history'] = InMemoryHistory()
     params['history'] = FileHistory(expanduser("~/.remotepdb_history"))
