@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-    Copyright (c) 2017 Martin F. Falatic
+    Copyright (c) 2017-2018 Martin F. Falatic
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +28,9 @@ import time
 import argparse
 import signal
 import sys
+import re
 from os.path import expanduser
-from colorama import Fore, Back, Style
+from colorama import Fore, Back, Style  # noqa: F401
 # from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit import prompt
@@ -119,6 +120,7 @@ def setup(params):
     params['prompt'] = args.prompt if args.prompt else default_prompt
     params['pad_before'] = args.padbefore
     params['pad_after'] = args.padafter
+    params['delay_timeout'] = time.time()
 
     theme = {
         'none': {
@@ -157,11 +159,17 @@ def setup(params):
     return params
 
 
+p_continue_until = re.compile(r'^c\s*(\d+)$')
+auto_continue = False
+
+
 def connector(params):
     remote = telnetlib.Telnet(params['host'], params['port'])
-    textout = ''
     read_remote = True
-    while textout not in ['c', 'q']:
+    while True:
+        if time.time() < params['delay_timeout']:
+            remote.write('c'.encode('ascii') + b'\n')
+            break
         if read_remote:
             textin = remote.read_until(params['prompt'].encode('ascii'))
             text_main = textin.decode('ascii').rsplit(params['prompt'], 1)
@@ -173,6 +181,15 @@ def connector(params):
             textout = prompt(history=params['history']).strip()
         except KeyboardInterrupt:
             exit_handler()
+        if textout in ['e', 'exit', 'q', 'quit']:
+            exit_handler()
+        m = p_continue_until.match(textout)
+        if m:
+            print("Continuing for", m.group(1), "seconds...")
+            params['delay_timeout'] = time.time() + float(m.group(1))
+            break
+        if textout in ['c']:
+            break
         if textout in ['cl', 'clear']:
             pad_line(params['pad_before'])
             print(params['color_alert'] + "{} is not allowed here (would block on stdin on the server)".format(textout))
@@ -182,8 +199,6 @@ def connector(params):
         else:
             remote.write(textout.encode('ascii') + b'\n')
             read_remote = True
-        if textout in ['e', 'exit', 'q', 'quit']:
-            exit_handler()
 
 
 def main(params={}):
@@ -200,6 +215,7 @@ def main(params={}):
                 pad_line(params['pad_before'])
                 print(params['color_wait'] + "Waiting for breakpoint/trace...")
                 pad_line(params['pad_after'])
+                print(params['color_cmd'], end='', flush=True)
                 waiting = True
             time.sleep(params['delay'])
 
