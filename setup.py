@@ -22,12 +22,8 @@
     THE SOFTWARE.
 """
 
-from setuptools import setup
 from os import path
-
-this_directory = path.abspath(path.dirname(__file__))
-with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
-    long_description = f.read()
+from setuptools import setup
 
 
 def read_and_exec_conf(conf_file):
@@ -43,6 +39,10 @@ def read_and_exec_conf(conf_file):
 
 config = read_and_exec_conf('remotepdb_client/__config__.py')
 package_data = config['PACKAGE_DATA']
+
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 setup(
     name=package_data['name'],
