@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 """
-    Copyright (c) 2017-2018 Martin F. Falatic
+    Copyright (c) 2017-2019 Martin F. Falatic
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
     of this software and associated documentation files (the "Software"), to deal
@@ -23,17 +23,19 @@
 
 """
 
-import telnetlib
-import time
 import argparse
+from os.path import expanduser
+import re
 import signal
 import sys
-import re
-from os.path import expanduser
+import telnetlib
+import time
+
 from colorama import Fore, Back, Style  # noqa: F401
 # from prompt_toolkit.history import InMemoryHistory
 from prompt_toolkit.history import FileHistory
 from prompt_toolkit import prompt
+
 try:
     from remotepdb_client.__config__ import PACKAGE_DATA
 except ModuleNotFoundError:

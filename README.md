@@ -18,4 +18,4 @@ There is a limit to what you can debug with this - if you call `set_trace()` wit
 
 ## Disclaimer
 
-DO NOT use the Client to connect to untrusted hosts!
+DO NOT use RemotePDB Client to connect to untrusted hosts!

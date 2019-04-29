@@ -29,7 +29,7 @@ PACKAGE_DATA = {
     'url': 'https://github.com/MartyMacGyver/remote-pdb-client',
     'author': 'Martin F. Falatic',
     'author_email': 'martin@falatic.com',
-    'copyright': 'Copyright (c) 2017-2018',
+    'copyright': 'Copyright (c) 2017-2019',
     'license': 'MIT License',
     'description': 'A client for the RemotePDB debugger',
     'long_description': """
@@ -47,8 +47,7 @@ For Windows, OS X and Linux
         'Programming Language :: Python :: 3 :: Only',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
-        # 'Development Status :: 3 - Alpha',
-        # 'Development Status :: 4 - Beta',
+        'Programming Language :: Python :: 3.7',
         'Development Status :: 5 - Production/Stable',
     ],
     'packages': [

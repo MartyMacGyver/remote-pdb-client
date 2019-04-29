@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
-import sys
 from remote_pdb import RemotePdb
+import sys
 
 if len(sys.argv) <= 1:
     HOST = '0.0.0.0'

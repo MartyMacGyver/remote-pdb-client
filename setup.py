@@ -24,6 +24,7 @@
 
 from setuptools import setup
 
+
 def read_and_exec_conf(conf_file):
     conf = {}
     exec_str = ''
@@ -33,6 +34,7 @@ def read_and_exec_conf(conf_file):
         exec_str = exec_str.lstrip(u'\ufeff')
         exec(exec_str, conf)
     return conf
+
 
 config = read_and_exec_conf('remotepdb_client/__config__.py')
 package_data = config['PACKAGE_DATA']
