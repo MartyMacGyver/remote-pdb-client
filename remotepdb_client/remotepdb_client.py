@@ -31,25 +31,24 @@ import sys
 import telnetlib
 import time
 
-from colorama import Fore, Back, Style  # noqa: F401
-# from prompt_toolkit.history import InMemoryHistory
-from prompt_toolkit.history import FileHistory
+from prompt_toolkit import print_formatted_text
 from prompt_toolkit import prompt
+
+from prompt_toolkit.formatted_text import FormattedText
+from prompt_toolkit.history import FileHistory
+from prompt_toolkit.styles import Style
 
 try:
     from remotepdb_client.__config__ import PACKAGE_DATA
 except ModuleNotFoundError:
     from __config__ import PACKAGE_DATA
 
-
-TITLE = "{} v{}".format(PACKAGE_DATA['friendly_name'], PACKAGE_DATA['version'])
-
-RESET_COLOR = ''
+TITLE = '{} v{}'.format(PACKAGE_DATA['friendly_name'], PACKAGE_DATA['version'])
 
 
 def exit_handler():
     print()
-    print(RESET_COLOR + "Exiting...")
+    print('Exiting...')
     sys.exit(0)
 
 
@@ -68,8 +67,8 @@ def setup(params):
 
     default_host = 'localhost'
     default_port = 4544
-    default_delay = 0.5  # seconds between retries
-    minimum_delay = 0.1
+    default_delay = 0.5  # Time between retries (s)
+    minimum_delay = 0.1  # Lower bounds on delay (s)
     default_theme = 'none'
     default_prompt = '(Pdb) '  # trailing spaces are important
     default_pad_before = 0
@@ -78,19 +77,19 @@ def setup(params):
     def port_value(string):
         value = int(string)
         if not (0 <= value <= 65535):
-            msg = "Port {} is invalid".format(string)
+            msg = 'Port {} is invalid'.format(string)
             raise argparse.ArgumentTypeError(msg)
         return value
 
     def delay_value(string):
         value = float(string)
         if value and value < minimum_delay:
-            msg = "{} is less than minimum delay {}".format(string, minimum_delay)
+            msg = '{} is less than minimum delay {}'.format(string, minimum_delay)
             raise argparse.ArgumentTypeError(msg)
         return value
 
     parser = argparse.ArgumentParser(
-        description="{} - {}".format(TITLE, PACKAGE_DATA['description']),
+        description='{} - {}'.format(TITLE, PACKAGE_DATA['description']),
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument('--host', metavar='HOST_NAME', required=False,
@@ -104,7 +103,7 @@ def setup(params):
                         help='connection retry delay')
     parser.add_argument('--theme', metavar='THEME_NAME', required=False,
                         type=str, default=default_theme,
-                        help='output theme (dark, light, none)')
+                        help='display theme (dark, light, none)')
     parser.add_argument('--padbefore', required=False,
                         type=int, metavar='LINES', default=default_pad_before,
                         help='pad before remote lines')
@@ -120,43 +119,41 @@ def setup(params):
     params['port'] = args.port
     params['delay'] = args.delay
     params['prompt'] = args.prompt if args.prompt else default_prompt
+    params['prompt_local'] = [('class:prompt', params['prompt'].strip()), ('', ' ')]
     params['pad_before'] = args.padbefore
     params['pad_after'] = args.padafter
     params['delay_timeout'] = time.time()
 
-    theme = {
+    styles = {
         'none': {
-            'color_default': '',
-            'color_prompt': '',
-            'color_cmd': '',
-            'color_output': '',
-            'color_wait': '',
-            'color_alert': '',
+            '': '',  # User input (default text)
+            'prompt': '',
+            'output': '',
+            'wait': '',
+            'alert': '',
+            'title': '',
         },
         'light': {
-            'color_default': Style.RESET_ALL,
-            'color_prompt': Style.DIM + Fore.GREEN,
-            'color_cmd': Style.NORMAL + Fore.BLUE,
-            'color_output': Style.NORMAL + Fore.BLACK,
-            'color_wait': Style.NORMAL + Fore.CYAN,
-            'color_alert': Style.NORMAL + Fore.RED,
+            '': 'fg:ansigreen',  # User input (default text)
+            'prompt': 'fg:ansicyan',
+            'output': 'fg:ansibrightblack',
+            'wait': 'fg:ansiblue',
+            'alert': 'fg:ansired',
+            'title': 'fg:ansiblack bold',
         },
         'dark': {
-            'color_default': Style.RESET_ALL,
-            'color_prompt': Style.BRIGHT + Fore.GREEN,
-            'color_cmd': Style.NORMAL + Fore.YELLOW,
-            'color_output': Style.NORMAL + Fore.WHITE,
-            'color_wait': Style.NORMAL + Fore.CYAN,
-            'color_alert': Style.NORMAL + Fore.RED,
+            '': 'fg:ansiyellow',  # User input (default text)
+            'prompt': 'fg:ansigreen',
+            'output': 'fg:ansiwhite',
+            'wait': 'fg:ansicyan',
+            'alert': 'fg:ansibrightred',
+            'title': 'fg:ansiwhite bold',
         },
     }
-    params['theme'] = args.theme.lower() if args.theme else default_theme
-    params.update(theme[params['theme']])
-    global RESET_COLOR
-    RESET_COLOR = params['color_default']
 
-    # params['history'] = InMemoryHistory()
-    params['history'] = FileHistory(expanduser("~/.remotepdb_history"))
+    params['theme'] = args.theme.lower() if args.theme else default_theme
+    params['style'] = Style.from_dict(styles[params['theme']])
+    params['history'] = FileHistory(expanduser('~/.remotepdb_history'))
 
     return params
 
@@ -176,27 +173,48 @@ def connector(params):
             textin = remote.read_until(params['prompt'].encode('ascii'))
             text_main = textin.decode('ascii').rsplit(params['prompt'], 1)
             pad_line(params['pad_before'])
-            print(params['color_output'] + text_main[0], end='')
+            for line in text_main[0].splitlines():
+                print_formatted_text(
+                    FormattedText(
+                        [('class:output', line)]
+                    ),
+                    style=params['style'],
+                )
             pad_line(params['pad_after'])
-            print(params['color_prompt'] + params['prompt'].strip() + params['color_cmd'] + ' ', end='')
         try:
-            textout = prompt(history=params['history']).strip()
+            textout = prompt(
+                params['prompt_local'],
+                style=params['style'],
+                history=params['history'],
+            ).strip()
         except KeyboardInterrupt:
             exit_handler()
+
         if textout in ['e', 'exit', 'q', 'quit']:
             exit_handler()
+
         m = p_continue_until.match(textout)
         if m:
-            print("Continuing for", m.group(1), "seconds...")
+            print_formatted_text(
+                FormattedText(
+                    [('class:wait', 'Continuing for {} seconds...'.format(m.group(1)))]
+                ),
+                style=params['style'],
+            )
+            pad_line(params['pad_after'])
             params['delay_timeout'] = time.time() + float(m.group(1))
             break
         if textout in ['c']:
             break
-        if textout in ['cl', 'clear']:
+        elif textout in ['cl', 'clear']:
             pad_line(params['pad_before'])
-            print(params['color_alert'] + "{} is not allowed here (would block on stdin on the server)".format(textout))
+            print_formatted_text(
+                FormattedText(
+                    [('class:alert', '`{}` is not allowed here (would block on stdin on the server)'.format(textout))]
+                ),
+                style=params['style'],
+            )
             pad_line(params['pad_after'])
-            print(params['color_prompt'] + params['prompt'].strip() + params['color_cmd'] + ' ', end='', flush=True)
             read_remote = False
         else:
             remote.write(textout.encode('ascii') + b'\n')
@@ -206,7 +224,13 @@ def connector(params):
 def main(params={}):
     setup(params=params)
     print()
-    print("{} debugging via {}:{}".format(TITLE, params['host'], params['port']))
+    print_formatted_text(
+        FormattedText(
+            [('class:title', '{} debugging via {}:{}'.format(TITLE, params['host'], params['port']))]
+        ),
+        style=params['style'],
+    )
+    print()
     waiting = False
     while 1:
         try:
@@ -215,9 +239,13 @@ def main(params={}):
         except (ConnectionRefusedError, EOFError):
             if not waiting:
                 pad_line(params['pad_before'])
-                print(params['color_wait'] + "Waiting for breakpoint/trace...")
+                print_formatted_text(
+                    FormattedText(
+                        [('class:wait', 'Waiting for breakpoint/trace...')]
+                    ),
+                    style=params['style'],
+                )
                 pad_line(params['pad_after'])
-                print(params['color_cmd'], end='', flush=True)
                 waiting = True
             time.sleep(params['delay'])
 
