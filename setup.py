@@ -23,6 +23,11 @@
 """
 
 from setuptools import setup
+from os import path
+
+this_directory = path.abspath(path.dirname(__file__))
+with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
+    long_description = f.read()
 
 
 def read_and_exec_conf(conf_file):
@@ -43,7 +48,6 @@ setup(
     name=package_data['name'],
     version=package_data['version'],
     description=package_data['description'],
-    long_description=package_data['long_description'],
     url=package_data['url'],
     author=package_data['author'],
     author_email=package_data['author_email'],
@@ -56,4 +60,7 @@ setup(
     extras_require=package_data['extras_require'],
     package_data=package_data['package_data'],
     data_files=package_data['data_files'],
+    # Derived data
+    long_description=long_description,
+    long_description_content_type='text/markdown',
 )

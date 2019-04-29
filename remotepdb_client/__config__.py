@@ -25,20 +25,13 @@
 PACKAGE_DATA = {
     'friendly_name': 'RemotePdb Client',
     'name': 'remote-pdb-client',
-    'version': '1.0.0',
+    'version': '1.0.1',
     'url': 'https://github.com/MartyMacGyver/remote-pdb-client',
     'author': 'Martin F. Falatic',
     'author_email': 'martin@falatic.com',
     'copyright': 'Copyright (c) 2017-2019',
     'license': 'MIT License',
     'description': 'A client for the RemotePDB debugger',
-    'long_description': """
-`remotepdb_client --help` for more information
-
-This is a development release and is not considered final
-
-For Windows, OS X and Linux
-    """,
     'keywords': 'remotepdb debugging pdb telnet',
     'classifiers': [
         'License :: OSI Approved :: Apache Software License',
