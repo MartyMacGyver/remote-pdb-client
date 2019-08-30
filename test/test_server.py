@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys
+import time
 
 if len(sys.argv) <= 1:
     HOST = '0.0.0.0'
@@ -12,8 +13,8 @@ else:
 avar = 42
 print("Hello", avar)
 print(sys.argv)
-
-from remote_pdb import RemotePdb; RemotePdb(HOST, PORT).set_trace()  # noqa
-
-print("Do something", avar)
+while True:
+    from remote_pdb import RemotePdb; RemotePdb(HOST, PORT).set_trace()  # noqa
+    print("Do something", avar)
+    time.sleep(1)
 print("Bye", avar)

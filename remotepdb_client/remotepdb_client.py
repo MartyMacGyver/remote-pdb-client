@@ -1,28 +1,5 @@
 #!/usr/bin/env python3
 
-"""
-    Copyright (c) 2017-2019 Martin F. Falatic
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in
-    all copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-    THE SOFTWARE.
-
-"""
-
 import argparse
 from os.path import expanduser
 import re
@@ -176,7 +153,7 @@ def connector(params):
             for line in text_main[0].splitlines():
                 print_formatted_text(
                     FormattedText(
-                        [('class:output', line)]
+                        [('class:output', line)],
                     ),
                     style=params['style'],
                 )
@@ -188,16 +165,18 @@ def connector(params):
                 history=params['history'],
             ).strip()
         except KeyboardInterrupt:
+            remote.write('c'.encode('ascii') + b'\n')
             exit_handler()
 
         if textout in ['e', 'exit', 'q', 'quit']:
+            remote.write('c'.encode('ascii') + b'\n')
             exit_handler()
 
         m = p_continue_until.match(textout)
         if m:
             print_formatted_text(
                 FormattedText(
-                    [('class:wait', 'Continuing for {} seconds...'.format(m.group(1)))]
+                    [('class:wait', 'Continuing for {} seconds...'.format(m.group(1)))],
                 ),
                 style=params['style'],
             )
@@ -205,12 +184,13 @@ def connector(params):
             params['delay_timeout'] = time.time() + float(m.group(1))
             break
         if textout in ['c']:
+            remote.write('c'.encode('ascii') + b'\n')
             break
         elif textout in ['cl', 'clear']:
             pad_line(params['pad_before'])
             print_formatted_text(
                 FormattedText(
-                    [('class:alert', '`{}` is not allowed here (would block on stdin on the server)'.format(textout))]
+                    [('class:alert', '`{}` is not allowed here (would block on stdin on the server)'.format(textout))],
                 ),
                 style=params['style'],
             )
@@ -219,6 +199,7 @@ def connector(params):
         else:
             remote.write(textout.encode('ascii') + b'\n')
             read_remote = True
+    remote.close()
 
 
 def main(params={}):
@@ -226,7 +207,7 @@ def main(params={}):
     print()
     print_formatted_text(
         FormattedText(
-            [('class:title', '{} debugging via {}:{}'.format(TITLE, params['host'], params['port']))]
+            [('class:title', '{} debugging via {}:{}'.format(TITLE, params['host'], params['port']))],
         ),
         style=params['style'],
     )
@@ -241,7 +222,7 @@ def main(params={}):
                 pad_line(params['pad_before'])
                 print_formatted_text(
                     FormattedText(
-                        [('class:wait', 'Waiting for breakpoint/trace...')]
+                        [('class:wait', 'Waiting for breakpoint/trace...')],
                     ),
                     style=params['style'],
                 )
