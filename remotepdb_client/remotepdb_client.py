@@ -90,6 +90,8 @@ def setup(params):
     parser.add_argument('--prompt', metavar='STRING', required=False,
                         type=str, default=default_prompt,
                         help='remote prompt incl. trailing spaces')
+    parser.add_argument('--debug', action='store_true',
+                        help='Enable debugging output')
     args = parser.parse_args()
 
     params['host'] = args.host if args.host else default_host
@@ -100,6 +102,7 @@ def setup(params):
     params['pad_before'] = args.padbefore
     params['pad_after'] = args.padafter
     params['delay_timeout'] = time.time()
+    params['debug'] = args.debug
 
     styles = {
         'none': {
@@ -139,15 +142,38 @@ p_continue_until = re.compile(r'^c\s*(\d+)$')
 auto_continue = False
 
 
+def check_alive(params, telnet_obj):
+    try:
+        if telnet_obj.sock:
+            # A NOP is usually IAC+NOP but it causes codec errors in remotepdb!
+            for attemps in range(4):
+                telnet_obj.sock.send(b'\n\n')
+                time.sleep(0.1)
+            return True
+        else:
+            if params['debug']:
+                print('DEBUG: Socket not connected')
+    except Exception as e:
+        if params['debug']:
+            print('DEBUG: Send failed ({})'.format(e))
+
+
 def connector(params):
     remote = telnetlib.Telnet(params['host'], params['port'])
     read_remote = True
+    if not check_alive(params, remote):
+        return False
     while True:
         if time.time() < params['delay_timeout']:
             remote.write('c'.encode('ascii') + b'\n')
             break
         if read_remote:
-            textin = remote.read_until(params['prompt'].encode('ascii'))
+            try:
+                textin = remote.read_until(params['prompt'].encode('ascii'))
+            except ConnectionResetError:
+                if params['debug']:
+                    print('DEBUG: Connection reset by peer')
+                break
             text_main = textin.decode('ascii').rsplit(params['prompt'], 1)
             pad_line(params['pad_before'])
             for line in text_main[0].splitlines():
@@ -165,6 +191,8 @@ def connector(params):
                 history=params['history'],
             ).strip()
         except KeyboardInterrupt:
+            if params['debug']:
+                print('DEBUG: Keyboad interrupt')
             remote.write('c'.encode('ascii') + b'\n')
             exit_handler()
 
@@ -200,6 +228,7 @@ def connector(params):
             remote.write(textout.encode('ascii') + b'\n')
             read_remote = True
     remote.close()
+    return True
 
 
 def main(params={}):
@@ -213,21 +242,25 @@ def main(params={}):
     )
     print()
     waiting = False
-    while 1:
+    while True:
         try:
-            connector(params=params)
-            waiting = False
+            if params['debug']:
+                print('DEBUG: Attempting to connect')
+            if connector(params=params):
+                waiting = False
         except (ConnectionRefusedError, EOFError):
-            if not waiting:
-                pad_line(params['pad_before'])
-                print_formatted_text(
-                    FormattedText(
-                        [('class:wait', 'Waiting for breakpoint/trace...')],
-                    ),
-                    style=params['style'],
-                )
-                pad_line(params['pad_after'])
-                waiting = True
+            if params['debug']:
+                print('DEBUG: Connection refused')
+        if not waiting:
+            pad_line(params['pad_before'])
+            print_formatted_text(
+                FormattedText(
+                    [('class:wait', 'Waiting for breakpoint/trace...')],
+                ),
+                style=params['style'],
+            )
+            pad_line(params['pad_after'])
+            waiting = True
             time.sleep(params['delay'])
 
 
