@@ -142,13 +142,18 @@ p_continue_until = re.compile(r'^c\s*(\d+)$')
 auto_continue = False
 
 
-def check_alive(params, telnet_obj):
+def check_alive(params, remote):
     try:
-        if telnet_obj.sock:
+        if remote.sock:
             # A NOP is usually IAC+NOP but it causes codec errors in remotepdb!
-            for attemps in range(4):
-                telnet_obj.sock.send(b'\n\n')
+            for attempts in range(1):
+                #remote.sock.send(b'\n\n')
+                remote.write('h'.encode('ascii') + b'\n')
                 time.sleep(0.1)
+                data = remote.read_eager()
+                if not data:
+                    return False
+                remote.read_until(params['prompt'].encode('ascii'))
             return True
         else:
             if params['debug']:
